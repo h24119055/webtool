@@ -4,3 +4,4 @@ pandas
 tensorflow
 nibabel
 requests
+openpyxl
