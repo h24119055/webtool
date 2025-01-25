@@ -6,6 +6,8 @@ from tensorflow.keras.models import load_model
 import nibabel as nib
 import tempfile
 import os
+import sys
+import gdown
 
 class PredictionApp:
     def __init__(self):
@@ -21,7 +23,21 @@ class PredictionApp:
 
     def load_model(self):
         try:
-            self.model = load_model('best_fold_model_f1_score.h5', compile=False)
+            # Google Drive 檔案的分享連結
+            drive_url = "https://drive.google.com/uc?id=1PeL_CoV3TldoyU9ZlPgtk4xH8V_QyomK"
+            model_filename = "best_fold_model_f1_score.h5"
+            model_path = os.path.join('data', model_filename)
+
+            # 確保資料夾存在
+            os.makedirs('data', exist_ok=True)
+
+            # 如果模型檔案不存在，就下載
+            if not os.path.exists(model_path):
+                st.sidebar.info("正在下載模型檔案...")
+                gdown.download(drive_url, model_path, quiet=False)
+
+            # 載入模型
+            self.model = load_model(model_path, compile=False)
             st.sidebar.success("模型已成功載入")
         except Exception as e:
             st.sidebar.error(f"模型載入失敗: {e}")
