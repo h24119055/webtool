@@ -61,7 +61,7 @@ class PredictionApp:
                     "plan_ability_mean(5)", "organization_ability_mean(6)", 
                     "attention_mean(4)", "direction_mean(7)", 
                     "judgement_mean(5)", "care_mean(5)", 
-                    "sympton_age", "sympton_speed"
+                    "symptom_age", "symptom_speed"
                 ]
                 
                 missing_columns = [col for col in required_columns if col not in df.columns]
@@ -76,7 +76,7 @@ class PredictionApp:
                 df_selected = df[required_columns]  # 只選取需要的欄位
 
                 # 顯示資料
-                st.write("資料的第一欄（通常是ID或號碼）:")
+                st.write("資料的第一欄（通常是ID或病歷號）:")
                 st.write(first_column)
                 st.write("資料 :")
                 st.dataframe(df_selected)  # 顯示資料框
@@ -88,8 +88,10 @@ class PredictionApp:
             except Exception as e:
                 st.error(f"檔案讀取錯誤: {e}")
                 return None
-                
+
+
     def manual_input(self):
+        # 定義欄位及其要求
         required_columns = [
             "Education", "age", "gender", "BMI", "living_code", 
             "exercise", "Hyperlipidemia"
@@ -99,15 +101,88 @@ class PredictionApp:
             "plan_ability_mean(5)", "organization_ability_mean(6)", 
             "attention_mean(4)", "direction_mean(7)", 
             "judgement_mean(5)", "care_mean(5)", 
-            "sympton_age", "sympton_speed"
+            "symptom_age", "symptom_speed"
         ]
 
+        # Session State 的鍵，避免覆蓋
+        session_key = "manual_input_v1"
+
+        # 初始化數據存儲區
+        if session_key not in st.session_state:
+            st.session_state[session_key] = {}
+
+        # 指定需要整數格式的欄位
+        integer_columns = ["symptom_age", "symptom_speed"]
+
         input_data = {}
-        for col in required_columns + questionnaire_columns:
-            input_data[col] = st.number_input(f"{col}:", value=0.0)
-        
+
+        # 教育年數，整數格式
+        input_data["Education"] = st.number_input(
+            "Education (years, integer):", value=st.session_state[session_key].get("Education", 0), step=1, format="%d"
+        )
+
+        # 年齡，整數格式
+        input_data["age"] = st.number_input(
+            "Age (years old, integer):", value=st.session_state[session_key].get("age", 0), step=1, format="%d"
+        )
+
+        # 性別，只能選擇 0 或 1
+        input_data["gender"] = st.selectbox(
+            "Gender (0: female, 1: male):", options=[0, 1],
+            index=st.session_state[session_key].get("gender", 0)
+        )
+
+        # 身高與體重，計算 BMI
+        height = st.number_input(
+            "Height (cm):", value=st.session_state[session_key].get("height", 0.0),  format="%.2f"
+        )
+        weight = st.number_input(
+            "Weight (kg):", value=st.session_state[session_key].get("weight", 0.0),  format="%.2f"
+        )
+        if height > 0:
+            input_data["BMI"] = round(weight / ((height / 100) ** 2), 2)
+            st.write(f"BMI (calculated): {input_data['BMI']}")
+        else:
+            input_data["BMI"] = 0
+
+        # 居住情況，只能選擇 0 或 1
+        input_data["living_code"] = st.selectbox(
+            "Living code (0: with others, 1: with spouse):", options=[0, 1],
+            index=st.session_state[session_key].get("living_code", 0)
+        )
+
+        # 運動習慣，只能選擇 0 或 1
+        input_data["exercise"] = st.selectbox(
+            "Exercise (0: no regular exercise, 1: regular exercise):", options=[0, 1],
+            index=st.session_state[session_key].get("exercise", 0)
+        )
+
+        # 高血脂，只能選擇 0 或 1
+        input_data["Hyperlipidemia"] = st.selectbox(
+            "Hyperlipidemia (0: no, 1: yes):", options=[0, 1],
+            index=st.session_state[session_key].get("Hyperlipidemia", 0)
+        )
+
+        # 問卷欄位輸入
+        for col in questionnaire_columns:
+            if col in integer_columns:
+                input_data[col] = st.number_input(
+                    f"{col} (integer):", value=st.session_state[session_key].get(col, 0), step=1, format="%d"
+                )  # 整數格式
+            else:
+                input_data[col] = st.number_input(
+                    f"{col} (float):", value=st.session_state[session_key].get(col, 0.00), format="%.2f"
+                )  # 小數點兩位格式
+
+        # 保存到 session state
+        # 將資料寫入 session_state
         st.session_state.questionnaire_data = input_data
+        # 在返回前顯示資料
+        st.write("以下是輸入的資料：")
+        df = pd.DataFrame([input_data])  # 將字典轉換為 DataFrame
+        st.dataframe(df)  # 顯示資料框
         return input_data
+
 
     def upload_image(self):
         uploaded_file = st.file_uploader(
@@ -154,9 +229,19 @@ class PredictionApp:
                         0.95952768, 0.70608356, 0.77328843, 0.48061809, 7.44441905, 1.3820275])
 
         X_table = (X_table - mean) / std
+        # 確認是否在 EXE 模式下
+        if getattr(sys, 'frozen', False):  # EXE 會進入這個條件
+            # sys._MEIPASS 是 PyInstaller 執行 EXE 時的特殊路徑
+            x_img_max_path = os.path.join(sys._MEIPASS, 'X_img_max.npy')
+            x_img_min_path = os.path.join(sys._MEIPASS, 'X_img_min.npy')
+        else:
+            # 如果是開發模式，則使用原始的相對路徑
+            x_img_max_path = os.path.join('data', 'X_img_max.npy')
+            x_img_min_path = os.path.join('data', 'X_img_min.npy')
+
         # 載入之前儲存的最小值和最大值
-        X_img_min = np.load('X_img_min.npy')
-        X_img_max = np.load('X_img_max.npy')
+        X_img_max = np.load(x_img_max_path)
+        X_img_min = np.load(x_img_min_path)
 
         # 對新的資料進行標準化
         X_img_normalized = (img_data - X_img_min) / (X_img_max - X_img_min)
@@ -220,5 +305,7 @@ def main():
     app = PredictionApp()
     app.run()
 
-if __name__ == "__main__":
+
+
+if __name__ == '__main__':
     main()
