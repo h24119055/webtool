@@ -236,8 +236,8 @@ class PredictionApp:
             x_img_min_path = os.path.join(sys._MEIPASS, 'X_img_min.npy')
         else:
             # 如果是開發模式，則使用原始的相對路徑
-            x_img_max_path = os.path.join('data', 'X_img_max.npy')
-            x_img_min_path = os.path.join('data', 'X_img_min.npy')
+            x_img_max_path = os.path.join('X_img_max.npy')
+            x_img_min_path = os.path.join('X_img_min.npy')
 
         # 載入之前儲存的最小值和最大值
         X_img_max = np.load(x_img_max_path)
