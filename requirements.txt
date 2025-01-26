@@ -6,3 +6,4 @@ nibabel
 requests
 openpyxl
 gdown
+re
