@@ -30,39 +30,52 @@ class PredictionApp:
         match = re.search(r'(\d+)$', str(x))
         return int(match.group(1)) if match else None
         
+        
     def match_files(self, questionnaire_df, uploaded_files):
         """智能匹配問卷資料與影像檔案"""
         # 除錯：印出原始問卷資料
         st.write("問卷資料列數:", len(questionnaire_df))
-        
-        # 提取問卷資料的數字ID
+
+        # 提取問卷資料的數字 ID
         questionnaire_df['ID'] = questionnaire_df.iloc[:, 0].apply(self.extract_number)
         
-        
-        # 提取影像檔案的數字ID
+        # 提取影像檔案的數字 ID 和檔名
         image_ids = []
         image_names = []
         for file in uploaded_files:
-            match = re.search(r'Img(\d+)', file.name)
+            match = re.search(r'Img(\d+)', file.name)  # 假設檔名格式為 "Img123"
             id_value = int(match.group(1)) if match else None
             image_ids.append(id_value)
             image_names.append(file.name)
-        
 
+        # 除錯：印出影像檔案數量與影像 ID
         st.write("影像檔案數量:", len(uploaded_files))
-        # 建立匹配字典
+        st.write("影像 ID:", image_ids)
+
+        # 確保問卷資料與影像檔案數量一致
+        if len(questionnaire_df) != len(uploaded_files):
+            st.error("問卷資料與影像檔案數量不一致，請檢查資料！")
+            return [], []
+
+        # 確保 ID 與檔名完全匹配
         matched_data = []
         matched_images = []
-        
         for idx, q_id in enumerate(questionnaire_df['ID']):
-            # 在影像ID中找對應的索引
-            image_match_idx = [i for i, img_id in enumerate(image_ids) if img_id == q_id]
-            
-            if image_match_idx:
+            # 找到與問卷 ID 完全匹配的影像索引
+            try:
+                image_match_idx = image_ids.index(q_id)
                 matched_data.append(questionnaire_df.iloc[idx].to_dict())
-                matched_images.append(uploaded_files[image_match_idx[0]])
-        
-        
+                matched_images.append(uploaded_files[image_match_idx])
+            except ValueError:
+                # 若找不到對應的影像檔案
+                st.error(f"問卷資料的 ID {q_id} 無法找到對應的影像檔案！")
+                return [], []
+
+        # 確認所有影像檔案都被匹配
+        if len(matched_images) != len(uploaded_files):
+            st.error("部分影像檔案未被匹配，請檢查資料！")
+            return [], []
+
         return matched_data, matched_images
 
     def load_model(self):
