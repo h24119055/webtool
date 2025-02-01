@@ -149,7 +149,7 @@ class PredictionApp:
                 return None
 
     
-        def manual_input(self):
+    def manual_input(self):
         # 定義欄位及其要求
         required_columns = [
             "Education", "age", "gender", "BMI", "living_code", 
