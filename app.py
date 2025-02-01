@@ -149,57 +149,100 @@ class PredictionApp:
                 return None
 
     
-    def manual_input():
-        required_columns = ["Education", "age", "gender", "BMI", "living_code", "exercise", "Hyperlipidemia"]
-        questionnaire_columns = ["memory_mean(8)", "language_mean(9)", "space_mean(7)", "plan_ability_mean(5)",
-                                 "organization_ability_mean(6)", "attention_mean(4)", "direction_mean(7)",
-                                 "judgement_mean(5)", "care_mean(5)", "symptom_age", "symptom_speed"]
+        def manual_input(self):
+        # 定義欄位及其要求
+        required_columns = [
+            "Education", "age", "gender", "BMI", "living_code", 
+            "exercise", "Hyperlipidemia"
+        ]
+        questionnaire_columns = [
+            "memory_mean(8)", "language_mean(9)", "space_mean(7)", 
+            "plan_ability_mean(5)", "organization_ability_mean(6)", 
+            "attention_mean(4)", "direction_mean(7)", 
+            "judgement_mean(5)", "care_mean(5)", 
+            "symptom_age", "symptom_speed"
+        ]
+    
+        # Session State 的鍵，避免覆蓋
         session_key = "manual_input_v1"
     
+        # 初始化數據存儲區
         if session_key not in st.session_state:
-            st.session_state[session_key] = {col: 0 for col in required_columns + questionnaire_columns + ["height", "weight"]}
+            st.session_state[session_key] = {}
     
-        def get_state_value(key, default=0):
-            return st.session_state[session_key].get(key, default)
+        # 使用 form 包裝所有輸入欄位
+        with st.form("manual_input_form"):
+            input_data = {}
     
-        input_data = {}
+            # 教育年數，整數格式
+            input_data["Education"] = st.number_input(
+                "Education (years, integer):", value=0, step=1, format="%d"
+            )
     
-        input_data["Education"] = st.number_input("Education (years, integer):", 
-                                                 value=get_state_value("Education", 0), step=1, format="%d")
+            # 年齡，整數格式
+            input_data["age"] = st.number_input(
+                "Age (years old, integer):", value=0, step=1, format="%d"
+            )
     
-        input_data["age"] = st.number_input("Age (years old, integer):", 
-                                           value=get_state_value("age", 0), step=1, format="%d")
+            # 性別，只能選擇 0 或 1
+            input_data["gender"] = st.selectbox(
+                "Gender (0: female, 1: male):", options=[0, 1]
+            )
     
-        input_data["gender"] = st.selectbox("Gender (0: female, 1: male):", options=[0, 1], index=get_state_value("gender", 0))
-    
-        height = st.number_input("Height (cm):", value=get_state_value("height", 0.0), format="%.2f")
-        weight = st.number_input("Weight (kg):", value=get_state_value("weight", 0.0), format="%.2f")
-    
-        if height > 0:
-            st.write(f"BMI (calculated): {round(weight / ((height / 100) ** 2), 2)}")
-        else:
-            st.write("BMI (calculated): 0")
-    
-        input_data["living_code"] = st.selectbox("Living code (0: with others, 1: with spouse):", options=[0, 1], 
-                                                 index=get_state_value("living_code", 0))
-        input_data["exercise"] = st.selectbox("Exercise (0: no, 1: regular exercise):", options=[0, 1], 
-                                              index=get_state_value("exercise", 0))
-        input_data["Hyperlipidemia"] = st.selectbox("Hyperlipidemia (0: no, 1: yes):", options=[0, 1], 
-                                                    index=get_state_value("Hyperlipidemia", 0))
-    
-        for col in questionnaire_columns:
-            if col in ["symptom_age", "symptom_speed"]:
-                input_data[col] = st.number_input(f"{col} (integer):", value=get_state_value(col, 0), step=1, format="%d")
+            # 身高與體重，計算 BMI
+            height = st.number_input("Height (cm):", value=0.0, format="%.2f")
+            weight = st.number_input("Weight (kg):", value=0.0, format="%.2f")
+            
+            if height > 0:
+                input_data["BMI"] = round(weight / ((height / 100) ** 2), 2)
+                st.write(f"BMI (calculated): {input_data['BMI']}")
             else:
-                input_data[col] = st.number_input(f"{col} (float):", value=get_state_value(col, 0.00), format="%.2f")
+                input_data["BMI"] = 0
     
-        st.write("以下是輸入的資料：")
-        df = pd.DataFrame([input_data])
-        st.dataframe(df)
-        st.session_state.questionnaire_df = df
+            # 居住情況，只能選擇 0 或 1
+            input_data["living_code"] = st.selectbox(
+                "Living code (0: with others, 1: with spouse):", options=[0, 1]
+            )
     
-        return input_data
-
+            # 運動習慣，只能選擇 0 或 1
+            input_data["exercise"] = st.selectbox(
+                "Exercise (0: no regular exercise, 1: regular exercise):", options=[0, 1]
+            )
+    
+            # 高血脂，只能選擇 0 或 1
+            input_data["Hyperlipidemia"] = st.selectbox(
+                "Hyperlipidemia (0: no, 1: yes):", options=[0, 1]
+            )
+    
+            # 指定需要整數格式的欄位
+            integer_columns = ["symptom_age", "symptom_speed"]
+    
+            # 問卷欄位輸入
+            for col in questionnaire_columns:
+                if col in integer_columns:
+                    input_data[col] = st.number_input(
+                        f"{col} (integer):", value=0, step=1, format="%d"
+                    )  # 整數格式
+                else:
+                    input_data[col] = st.number_input(
+                        f"{col} (float):", value=0.00, format="%.2f"
+                    )  # 小數點兩位格式
+    
+            # 提交按鈕
+            submitted = st.form_submit_button("儲存資料")
+            
+            if submitted:
+                # 轉換為 DataFrame 並保存到 session state
+                df = pd.DataFrame([input_data])
+                st.session_state.questionnaire_df = df
+                st.session_state[session_key] = input_data  # 保存輸入值以供下次使用
+                
+                # 顯示已保存的資料
+                st.success("資料已成功儲存！")
+                st.write("已儲存的資料：")
+                st.dataframe(df)
+    
+            return input_data
     
     def upload_image(self):
         if st.session_state.questionnaire_df is None:
