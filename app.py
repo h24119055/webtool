@@ -24,6 +24,31 @@ class PredictionApp:
         for var in session_vars:
             if var not in st.session_state:
                 st.session_state[var] = None
+                
+    def validate_mean_scores(self, df):
+        """驗證平均分數是否在有效範圍內"""
+        mean_columns = [
+            "memory_mean(8)", "language_mean(9)", "space_mean(7)", 
+            "plan_ability_mean(5)", "organization_ability_mean(6)", 
+            "attention_mean(4)", "direction_mean(7)", 
+            "judgement_mean(5)", "care_mean(5)"
+        ]
+        
+        for col in mean_columns:
+            mask = ~df[col].between(1, 4)
+            if mask.any():
+                invalid_rows = df.index[mask].tolist()
+                st.error(f"{col} 分數必須介於 1-4 分之間。問題出現在第 {invalid_rows} 列。")
+                return False
+        
+        # 驗證 symptom_speed
+        mask = ~df['symptom_speed'].between(1, 5)
+        if mask.any():
+            invalid_rows = df.index[mask].tolist()
+            st.error(f"symptom_speed 必須介於 1-5 分之間。問題出現在第 {invalid_rows} 列。")
+            return False
+            
+        return True
 
     def extract_number(self, x):
         """從字串結尾提取數字"""
@@ -131,7 +156,11 @@ class PredictionApp:
 
                 # 選取必要欄位的資料
                 df_selected = df[required_columns]
-
+                
+                # 驗證分數範圍
+                if not self.validate_mean_scores(df_selected):
+                    return None
+                    
                 # 儲存資料
                 st.session_state.original_questionnaire_df = df
                 st.session_state.questionnaire_df = df_selected
@@ -150,19 +179,6 @@ class PredictionApp:
 
     
     def manual_input(self):
-        # 定義欄位及其要求
-        required_columns = [
-            "Education", "age", "gender", "BMI", "living_code", 
-            "exercise", "Hyperlipidemia"
-        ]
-        questionnaire_columns = [
-            "memory_mean(8)", "language_mean(9)", "space_mean(7)", 
-            "plan_ability_mean(5)", "organization_ability_mean(6)", 
-            "attention_mean(4)", "direction_mean(7)", 
-            "judgement_mean(5)", "care_mean(5)", 
-            "symptom_age", "symptom_speed"
-        ]
-    
         # Session State 的鍵，避免覆蓋
         session_key = "manual_input_v1"
     
@@ -213,21 +229,39 @@ class PredictionApp:
             input_data["Hyperlipidemia"] = st.selectbox(
                 "Hyperlipidemia (0: no, 1: yes):", options=[0, 1]
             )
-    
-            # 指定需要整數格式的欄位
-            integer_columns = ["symptom_age", "symptom_speed"]
-    
-            # 問卷欄位輸入
-            for col in questionnaire_columns:
-                if col in integer_columns:
-                    input_data[col] = st.number_input(
-                        f"{col} (integer):", value=0, step=1, format="%d"
-                    )  # 整數格式
-                else:
-                    input_data[col] = st.number_input(
-                        f"{col} (float):", value=0.00, format="%.2f"
-                    )  # 小數點兩位格式
-    
+            
+            # 修改問卷欄位輸入，添加範圍限制
+            mean_score_columns = [
+                "memory_mean(8)", "language_mean(9)", "space_mean(7)", 
+                "plan_ability_mean(5)", "organization_ability_mean(6)", 
+                "attention_mean(4)", "direction_mean(7)", 
+                "judgement_mean(5)", "care_mean(5)"
+            ]
+            
+            st.write("以下分數請填寫 1-4 分：")
+            for col in mean_score_columns:
+                input_data[col] = st.number_input(
+                    f"{col}:", 
+                    min_value=1.0,
+                    max_value=4.0,
+                    value=1.0,
+                    step=0.1,
+                    format="%.1f"
+                )
+                
+            input_data["symptom_age"] = st.number_input(
+                    "symptom_age(這些症狀是幾歲時顯露出來的)", value=0, step=1, format="%d"
+            )
+            # symptom_speed 的範圍限制
+            input_data["symptom_speed"] = st.number_input(
+                "symptom_speed(症狀發生或進行的速度有多快) 1=很快、2=快、3=還好、4=慢、5=很慢:",
+                min_value=1,
+                max_value=5,
+                value=1,
+                step=1
+            )
+
+            
             # 提交按鈕
             submitted = st.form_submit_button("儲存資料")
             
@@ -248,41 +282,51 @@ class PredictionApp:
         if st.session_state.questionnaire_df is None:
             st.error("請先上傳問卷資料")
             return None
+    
         # 檢查問卷資料是否存在
-        if st.session_state.questionnaire_df.shape[0] == 1 :
+        if st.session_state.questionnaire_df.shape[0] == 1:
             st.warning("問卷資料只能有一筆，將限制影像檔案只能上傳 1 個且不進行比對。")
             uploaded_file = st.file_uploader(
                 "請上傳單一醫療影像檔案 (NIfTI 格式)", 
                 type=['nii', 'nii.gz'],
                 accept_multiple_files=False
             )
-
+    
             if uploaded_file:
                 try:
                     # 處理單一影像檔案
                     with tempfile.NamedTemporaryFile(delete=False, suffix=uploaded_file.name) as tmp_file:
                         tmp_file.write(uploaded_file.getvalue())
                         tmp_file_path = tmp_file.name
-
+    
                     nifti_img = nib.load(tmp_file_path)
                     img_data = nifti_img.get_fdata()
-
+    
                     target_shape = (176, 224, 170)
                     img_data = np.resize(img_data, target_shape)
-
+    
                     os.unlink(tmp_file_path)
-
+    
                     # 保存影像數據與檔名
                     st.session_state.image_data = [img_data]
                     st.session_state.image_filenames = [uploaded_file.name]
-
+    
                     st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
+                    
+                    # 顯示影像資料確認
+                    st.write(f"影像形狀: {img_data.shape}")
+                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
+                    
+                    # 顯示中間切片的預覽
+                    if st.checkbox("顯示影像中間切片預覽"):
+                        middle_slice = img_data[:, :, img_data.shape[2]//2]
+                        st.image(middle_slice, caption=f"{uploaded_file.name} 中間切片", clamp=True)
+    
                     return [img_data]
                 except Exception as e:
                     st.error(f"影像檔案 {uploaded_file.name} 載入錯誤: {e}")
                     return None
-
-        
+    
         else:
             # 問卷資料存在多個資料，進行多檔案上傳與比對
             uploaded_files = st.file_uploader(
@@ -290,36 +334,35 @@ class PredictionApp:
                 type=['nii', 'nii.gz'],
                 accept_multiple_files=True
             )
-            
-            
+    
             if uploaded_files:
                 # 智能匹配
                 matched_data, matched_images = self.match_files(
                     st.session_state.original_questionnaire_df, 
                     uploaded_files
                 )
-
+    
                 # 檢查匹配結果
                 if not matched_data:
                     st.error("無法找到匹配的檔案")
                     return None
-
+    
                 st.success(f"成功匹配 {len(matched_data)} 筆資料")
-
+    
                 # 儲存匹配結果
                 st.session_state.matched_data = matched_data
                 st.session_state.matched_images = matched_images
-
+    
                 # 處理影像
                 image_data_list = []
                 image_filename_list = []
-
+    
                 for uploaded_file in matched_images:
                     try:
                         with tempfile.NamedTemporaryFile(delete=False, suffix=uploaded_file.name) as tmp_file:
                             tmp_file.write(uploaded_file.getvalue())
                             tmp_file_path = tmp_file.name
-
+    
                         nifti_img = nib.load(tmp_file_path)
                         img_data = nifti_img.get_fdata()
                         
@@ -334,11 +377,26 @@ class PredictionApp:
                     except Exception as e:
                         st.error(f"影像 {uploaded_file.name} 載入錯誤: {e}")
                         return None
-                
+    
+                # 儲存影像資料
                 st.session_state.image_data = image_data_list
                 st.session_state.image_filenames = image_filename_list
-                
+    
+                # 顯示每個影像的資訊
+                st.success("影像資料已成功讀入")
+                for i, (img_data, filename) in enumerate(zip(image_data_list, image_filename_list)):
+                    st.write(f"影像 {i+1}: {filename}")
+                    st.write(f"影像形狀: {img_data.shape}")
+                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
+                    
+                    # 顯示中間切片的預覽（可選）
+                    if st.checkbox(f"顯示影像 {i+1} 的中間切片預覽"):
+                        middle_slice = img_data[:, :, img_data.shape[2]//2]
+                        st.image(middle_slice, caption=f"{filename} 中間切片", clamp=True)
+    
                 return image_data_list
+    
+        return None
 
 
     def preprocess_data(self, img_data, questionnaire_data, filename=None):
