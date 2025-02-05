@@ -12,7 +12,7 @@ import re
 
 class PredictionApp:
     def __init__(self):
-        st.title("醫療預測系統")
+        st.title("認知功能預測系統")
         self.initialize_session_state()
         self.load_model()
 
