@@ -238,7 +238,7 @@ class PredictionApp:
                 "judgement_mean(5)", "care_mean(5)"
             ]
             
-            st.write("以下分數請填寫 1-4 分：")
+            st.write("以下9欄分數請填寫 1-4 分：")
             for col in mean_score_columns:
                 input_data[col] = st.number_input(
                     f"{col}:", 
@@ -250,7 +250,7 @@ class PredictionApp:
                 )
                 
             input_data["symptom_age"] = st.number_input(
-                    "symptom_age(這些症狀是幾歲時顯露出來的)", value=0, step=1, format="%d"
+                    "symptom_age(這些症狀是幾歲時顯露出來的):", value=0, step=1, format="%d"
             )
             # symptom_speed 的範圍限制
             input_data["symptom_speed"] = st.number_input(
