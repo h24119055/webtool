@@ -66,27 +66,30 @@ class PredictionApp:
         y_middle = img_data.shape[1] // 2
         z_middle = img_data.shape[2] // 2
     
-        if st.checkbox(f"顯示 {filename} 的切片預覽"):
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                sagittal = img_data[x_middle, :, :]
-                if normalize:
-                    sagittal = self.normalize_for_display(sagittal)
-                st.image(sagittal, caption="矢狀面 (Sagittal)")
+        if filename is not None:
+            if st.checkbox(f"顯示 {filename} 的切片預覽"):
+
+                col1, col2, col3 = st.columns(3)
                 
-            with col2:
-                coronal = img_data[:, y_middle, :]
-                if normalize:
-                    coronal = self.normalize_for_display(coronal)
-                st.image(coronal, caption="冠狀面 (Coronal)")
-                
-            with col3:
-                axial = img_data[:, :, z_middle]
-                if normalize:
-                    axial = self.normalize_for_display(axial)
-                st.image(axial, caption="軸狀面 (Axial)")
-        
+                with col1:
+                    sagittal = img_data[x_middle, :, :]
+                    if normalize:
+                        sagittal = self.normalize_for_display(sagittal)
+                    st.image(sagittal, caption="矢狀面 (Sagittal)")
+                    
+                with col2:
+                    coronal = img_data[:, y_middle, :]
+                    if normalize:
+                        coronal = self.normalize_for_display(coronal)
+                    st.image(coronal, caption="冠狀面 (Coronal)")
+                    
+                with col3:
+                    axial = img_data[:, :, z_middle]
+                    if normalize:
+                        axial = self.normalize_for_display(axial)
+                    st.image(axial, caption="軸狀面 (Axial)")
+        else:
+            st.error("檔案名稱無效，請檢查上傳的影像檔案！")
                 
     def extract_number(self, x):
         """從字串結尾提取數字"""
