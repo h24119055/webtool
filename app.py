@@ -358,11 +358,6 @@ class PredictionApp:
     
                     st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
                     
-                    '''
-                    # 顯示中間切片的預覽
-                    if st.checkbox("顯示影像中間切片預覽"):
-                        middle_slice = img_data[:, :, img_data.shape[2]//2]
-                        st.image(middle_slice, caption=f"{uploaded_file.name} 中間切片", clamp=True)'''
                     # 在單一影像上傳的部分：
                     st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
                     st.write(f"影像形狀: {img_data.shape}")
@@ -431,16 +426,6 @@ class PredictionApp:
     
                 # 顯示每個影像的資訊
                 st.success("影像資料已成功讀入")
-                '''
-                for i, (img_data, filename) in enumerate(zip(image_data_list, image_filename_list)):
-                    st.write(f"影像 {i+1}: {filename}")
-                    st.write(f"影像形狀: {img_data.shape}")
-                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
-                    
-                    # 顯示中間切片的預覽（可選）
-                    if st.checkbox(f"顯示影像 {i+1} 的中間切片預覽"):
-                        middle_slice = img_data[:, :, img_data.shape[2]//2]
-                        st.image(middle_slice, caption=f"{filename} 中間切片", clamp=True)'''
                 # 在多影像上傳的部分：
                 for i, (img_data, filename) in enumerate(zip(image_data_list, image_filename_list)):
                     st.write(f"影像 {i+1}: {filename}")
