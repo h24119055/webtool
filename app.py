@@ -492,12 +492,10 @@ class PredictionApp:
                 st.write(f"### 處理後的影像 {idx+1}: {file_id}")
                 st.write(f"標準化後影像形狀: {X_img_normalized.shape}")
                 st.write(f"標準化後數值範圍: [{X_img_normalized.min():.4f}, {X_img_normalized.max():.4f}]")
-                
-                # 顯示標準化後的影像切片
-                if st.checkbox(f"顯示標準化後的影像 {idx+1} 切片"):
-                    z_middle = X_img_normalized.shape[2] // 2
-                    normalized_slice = (X_img_normalized[:, :, z_middle] * 255).astype(np.uint8)
-                    st.image(normalized_slice, caption=f"標準化後的軸狀面切片 {file_id}")
+                st.write(f"顯示標準化後的影像 {idx+1} 切片")
+                z_middle = X_img_normalized.shape[2] // 2
+                normalized_slice = (X_img_normalized[:, :, z_middle] * 255).astype(np.uint8)
+                st.image(normalized_slice, caption=f"標準化後的軸狀面切片 {file_id}")
     
         # 繼續原有的預測流程
         results = []
