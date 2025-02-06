@@ -58,33 +58,34 @@ class PredictionApp:
         # 將數值轉換到 0-255 範圍並轉換為 uint8 類型
         return (normalized * 255).astype(np.uint8)
     
-    
-    def display_brain_slice(self, img_data, filename, normalize=True):
+    def display_brain_slice(img_data, filename, normalize=True, show_checkbox=True):
         """顯示腦部切片的簡化版本"""
-        # 獲取三個方向的中間切片
         x_middle = img_data.shape[0] // 2
         y_middle = img_data.shape[1] // 2
         z_middle = img_data.shape[2] // 2
     
         if filename is not None:
-            checkbox_key = f"preview_{hash(filename)}"
-            show_preview = st.checkbox(f"顯示 {filename} 的切片預覽", key=checkbox_key)
-
+            checkbox_key = f"preview_{hash(filename)}"  # 確保 key 唯一
+            show_preview = True  # 預設為 True，當 show_checkbox=True 時才用 checkbox 控制
+    
+            if show_checkbox:
+                show_preview = st.checkbox(f"顯示 {filename} 的切片預覽", key=checkbox_key)
+    
             if show_preview:  # 直接使用 checkbox 控制顯示
                 col1, col2, col3 = st.columns(3)
-                
+    
                 with col1:
                     sagittal = img_data[x_middle, :, :]
                     if normalize:
                         sagittal = self.normalize_for_display(sagittal)
                     st.image(sagittal, caption="矢狀面 (Sagittal)")
-                    
+    
                 with col2:
                     coronal = img_data[:, y_middle, :]
                     if normalize:
                         coronal = self.normalize_for_display(coronal)
                     st.image(coronal, caption="冠狀面 (Coronal)")
-                    
+    
                 with col3:
                     axial = img_data[:, :, z_middle]
                     if normalize:
@@ -92,6 +93,7 @@ class PredictionApp:
                     st.image(axial, caption="軸狀面 (Axial)")
         else:
             st.error("檔案名稱無效，請檢查上傳的影像檔案！")
+
                 
     def extract_number(self, x):
         """從字串結尾提取數字"""
@@ -490,7 +492,7 @@ class PredictionApp:
                 
                 # 在預測前顯示當前要預測的影像
                 st.subheader(f"即將進行預測的影像確認: {filename}")
-                self.display_brain_slice(X_img_normalized, filename ,normalize=False)
+                self.display_brain_slice(X_img_normalized, filename ,normalize=False, show_checkbox=False)
                 
                 # 擴展維度
                 X_img_new = np.expand_dims(X_img_normalized, axis=0)
@@ -527,7 +529,7 @@ class PredictionApp:
             # 在預測前顯示要進行預測的影像
             st.subheader("即將進行預測的影像確認")
             filename = st.session_state.image_filenames[0] if st.session_state.image_filenames else "未命名影像"
-            self.display_brain_slice(X_img_normalized, filename ,normalize=False)
+            self.display_brain_slice(X_img_normalized, filename ,normalize=False, show_checkbox=False)
             
             X_img_new = np.expand_dims(X_img_normalized, axis=0)
             X_table_new = np.array(X_table_normalized)
