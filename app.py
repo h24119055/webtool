@@ -58,7 +58,8 @@ class PredictionApp:
         # 將數值轉換到 0-255 範圍並轉換為 uint8 類型
         return (normalized * 255).astype(np.uint8)
     
-    def display_brain_slice(self, img_data, filename):
+    
+    def display_brain_slice(self, img_data, filename, normalize=True):
         """顯示腦部切片的簡化版本"""
         # 獲取三個方向的中間切片
         x_middle = img_data.shape[0] // 2
@@ -69,15 +70,21 @@ class PredictionApp:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                sagittal = self.normalize_for_display(img_data[x_middle, :, :])
+                sagittal = img_data[x_middle, :, :]
+                if normalize:
+                    sagittal = self.normalize_for_display(sagittal)
                 st.image(sagittal, caption="矢狀面 (Sagittal)")
                 
             with col2:
-                coronal = self.normalize_for_display(img_data[:, y_middle, :])
+                coronal = img_data[:, y_middle, :]
+                if normalize:
+                    coronal = self.normalize_for_display(coronal)
                 st.image(coronal, caption="冠狀面 (Coronal)")
                 
             with col3:
-                axial = self.normalize_for_display(img_data[:, :, z_middle])
+                axial = img_data[:, :, z_middle]
+                if normalize:
+                    axial = self.normalize_for_display(axial)
                 st.image(axial, caption="軸狀面 (Axial)")
         
                 
@@ -455,14 +462,14 @@ class PredictionApp:
         if self.model is None:
             st.error("模型未載入，無法進行預測")
             return
-
+    
         if st.session_state.image_data is None or st.session_state.questionnaire_df is None:
             st.error("請先上傳影像和填寫問卷")
             return
-
+    
         # 準備結果列表
         results = []
-
+    
         # 檢查是否為多筆資料
         if isinstance(st.session_state.image_data, list):
             # 多筆資料處理
@@ -471,11 +478,14 @@ class PredictionApp:
                 st.session_state.questionnaire_df.iterrows(), 
                 st.session_state.image_filenames
             ):
-                
-                # 資料預處理 - 直接傳入 Series
+                # 資料預處理
                 X_img_normalized, X_table_normalized, file_id = self.preprocess_data(
                     img_data, questionnaire_data, filename
                 )
+                
+                # 在預測前顯示當前要預測的影像
+                st.subheader(f"即將進行預測的影像確認: {filename}")
+                self.display_brain_slice(X_img_normalized, filename ,normalize=False)
                 
                 # 擴展維度
                 X_img_new = np.expand_dims(X_img_normalized, axis=0)
@@ -485,7 +495,7 @@ class PredictionApp:
                     # 模型預測
                     y_pred_prob = self.model.predict([X_img_new, X_table_new])
                     y_pred = (y_pred_prob > 0.5).astype(int)
-
+    
                     # 準備結果
                     result = {
                         '檔名': file_id,
@@ -496,11 +506,11 @@ class PredictionApp:
                 
                 except Exception as e:
                     st.error(f"預測 {file_id} 時發生錯誤: {e}")
-
+    
             # 顯示所有結果
             results_df = pd.DataFrame(results)
             st.dataframe(results_df)
-
+    
         else:
             # 單筆資料處理
             questionnaire_data = st.session_state.questionnaire_df.iloc[0]
@@ -508,13 +518,19 @@ class PredictionApp:
                 st.session_state.image_data, 
                 questionnaire_data
             )
+            
+            # 在預測前顯示要進行預測的影像
+            st.subheader("即將進行預測的影像確認")
+            filename = st.session_state.image_filenames[0] if st.session_state.image_filenames else "未命名影像"
+            self.display_brain_slice(X_img_normalized, filename ,normalize=False)
+            
             X_img_new = np.expand_dims(X_img_normalized, axis=0)
             X_table_new = np.array(X_table_normalized)
             
             try:
                 y_pred_prob = self.model.predict([X_img_new, X_table_new])
                 y_pred = (y_pred_prob > 0.5).astype(int)
-
+    
                 # 顯示單筆預測結果
                 prediction_text = "預測結果顯示：Y=0 此為認知正常者 (MMSE > 26)" if y_pred[0][0] == 0 else "預測結果顯示：Y=1 此為重度認知功能障礙者 (MMSE < 20)"
                 st.write(prediction_text)
