@@ -67,8 +67,12 @@ class PredictionApp:
         z_middle = img_data.shape[2] // 2
     
         if filename is not None:
-            if st.checkbox(f"顯示 {filename} 的切片預覽", key=f"preview_{filename}"):
-
+            checkbox_key = f"preview_{filename}"
+            if checkbox_key not in st.session_state:
+                st.session_state[checkbox_key] = False
+        
+            if st.checkbox(f"顯示 {filename} 的切片預覽", key=checkbox_key):
+                st.session_state[checkbox_key] = True
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
