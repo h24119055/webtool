@@ -68,11 +68,9 @@ class PredictionApp:
     
         if filename is not None:
             checkbox_key = f"preview_{hash(filename)}"
-            if checkbox_key not in st.session_state:
-                st.session_state[checkbox_key] = False
-        
-            if st.checkbox(f"顯示 {filename} 的切片預覽", key=checkbox_key):
-                st.session_state[checkbox_key] = True
+            show_preview = st.checkbox(f"顯示 {filename} 的切片預覽", key=checkbox_key)
+
+            if show_preview:  # 直接使用 checkbox 控制顯示
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
