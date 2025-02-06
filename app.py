@@ -67,7 +67,7 @@ class PredictionApp:
         z_middle = img_data.shape[2] // 2
     
         if filename is not None:
-            checkbox_key = f"preview_{filename}"
+            checkbox_key = f"preview_{hash(filename)}"
             if checkbox_key not in st.session_state:
                 st.session_state[checkbox_key] = False
         
