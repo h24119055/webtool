@@ -358,11 +358,6 @@ class PredictionApp:
     
                     st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
                     
-                    # 在單一影像上傳的部分：
-                    st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
-                    st.write(f"影像形狀: {img_data.shape}")
-                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
-                    self.display_brain_slice(img_data, uploaded_file.name)
     
                     return [img_data]
                 except Exception as e:
@@ -426,12 +421,6 @@ class PredictionApp:
     
                 # 顯示每個影像的資訊
                 st.success("影像資料已成功讀入")
-                # 在多影像上傳的部分：
-                for i, (img_data, filename) in enumerate(zip(image_data_list, image_filename_list)):
-                    st.write(f"影像 {i+1}: {filename}")
-                    st.write(f"影像形狀: {img_data.shape}")
-                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
-                    self.display_brain_slice(img_data, filename)
     
                 return image_data_list
     
