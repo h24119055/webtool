@@ -9,6 +9,7 @@ import os
 import sys
 import gdown
 import re
+from PIL import Image
 
 class PredictionApp:
     def __init__(self):
@@ -49,7 +50,51 @@ class PredictionApp:
             return False
             
         return True
-
+        
+    def normalize_for_display(self, image_slice):
+        """標準化影像切片以便更好地顯示"""
+        # 將數值轉換到 0-1 範圍
+        normalized = (image_slice - image_slice.min()) / (image_slice.max() - image_slice.min())
+        # 將數值轉換到 0-255 範圍並轉換為 uint8 類型
+        return (normalized * 255).astype(np.uint8)
+    
+    def display_brain_slice(self, img_data, filename):
+        """顯示腦部切片的增強版本"""
+        # 獲取三個方向的中間切片
+        x_middle = img_data.shape[0] // 2
+        y_middle = img_data.shape[1] // 2
+        z_middle = img_data.shape[2] // 2
+    
+        if st.checkbox(f"顯示 {filename} 的切片預覽"):
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                sagittal = self.normalize_for_display(img_data[x_middle, :, :])
+                st.image(sagittal, caption="矢狀面 (Sagittal)", clamp=True)
+                
+            with col2:
+                coronal = self.normalize_for_display(img_data[:, y_middle, :])
+                st.image(coronal, caption="冠狀面 (Coronal)", clamp=True)
+                
+            with col3:
+                axial = self.normalize_for_display(img_data[:, :, z_middle])
+                st.image(axial, caption="軸狀面 (Axial)", clamp=True)
+    
+            # 添加對比度調整滑桿（可選）
+            contrast = st.slider(
+                "調整對比度",
+                min_value=0.1,
+                max_value=3.0,
+                value=1.0,
+                step=0.1,
+                key=f"contrast_{filename}"
+            )
+            
+            if contrast != 1.0:
+                # 使用新的對比度顯示影像
+                adjusted_slice = np.power(axial/255.0, contrast) * 255
+                st.image(adjusted_slice.astype(np.uint8), caption="調整後的軸狀面", clamp=True)
+                
     def extract_number(self, x):
         """從字串結尾提取數字"""
         match = re.search(r'(\d+)$', str(x))
@@ -313,14 +358,16 @@ class PredictionApp:
     
                     st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
                     
-                    # 顯示影像資料確認
-                    st.write(f"影像形狀: {img_data.shape}")
-                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
-                    
+                    '''
                     # 顯示中間切片的預覽
                     if st.checkbox("顯示影像中間切片預覽"):
                         middle_slice = img_data[:, :, img_data.shape[2]//2]
-                        st.image(middle_slice, caption=f"{uploaded_file.name} 中間切片", clamp=True)
+                        st.image(middle_slice, caption=f"{uploaded_file.name} 中間切片", clamp=True)'''
+                    # 在單一影像上傳的部分：
+                    st.success(f"已成功上傳影像檔案：{uploaded_file.name}")
+                    st.write(f"影像形狀: {img_data.shape}")
+                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
+                    self.display_brain_slice(img_data, uploaded_file.name)
     
                     return [img_data]
                 except Exception as e:
@@ -384,6 +431,7 @@ class PredictionApp:
     
                 # 顯示每個影像的資訊
                 st.success("影像資料已成功讀入")
+                '''
                 for i, (img_data, filename) in enumerate(zip(image_data_list, image_filename_list)):
                     st.write(f"影像 {i+1}: {filename}")
                     st.write(f"影像形狀: {img_data.shape}")
@@ -392,7 +440,13 @@ class PredictionApp:
                     # 顯示中間切片的預覽（可選）
                     if st.checkbox(f"顯示影像 {i+1} 的中間切片預覽"):
                         middle_slice = img_data[:, :, img_data.shape[2]//2]
-                        st.image(middle_slice, caption=f"{filename} 中間切片", clamp=True)
+                        st.image(middle_slice, caption=f"{filename} 中間切片", clamp=True)'''
+                # 在多影像上傳的部分：
+                for i, (img_data, filename) in enumerate(zip(image_data_list, image_filename_list)):
+                    st.write(f"影像 {i+1}: {filename}")
+                    st.write(f"影像形狀: {img_data.shape}")
+                    st.write(f"數值範圍: [{img_data.min():.2f}, {img_data.max():.2f}]")
+                    self.display_brain_slice(img_data, filename)
     
                 return image_data_list
     
