@@ -474,10 +474,33 @@ class PredictionApp:
             st.error("請先上傳影像和填寫問卷")
             return
     
-        # 準備結果列表
-        results = []
-    
+        # 在預測前顯示即將送入模型的影像資料
+        st.write("### 預測前影像資料確認")
+        
         # 檢查是否為多筆資料
+        if isinstance(st.session_state.image_data, list):
+            for idx, (img_data, questionnaire_data) in enumerate(zip(
+                st.session_state.image_data, 
+                st.session_state.questionnaire_df.iterrows()
+            )):
+                # 資料預處理 - 直接傳入 Series
+                X_img_normalized, X_table_normalized, file_id = self.preprocess_data(
+                    img_data, questionnaire_data[1], st.session_state.image_filenames[idx]
+                )
+                
+                # 顯示標準化後的影像資訊
+                st.write(f"### 處理後的影像 {idx+1}: {file_id}")
+                st.write(f"標準化後影像形狀: {X_img_normalized.shape}")
+                st.write(f"標準化後數值範圍: [{X_img_normalized.min():.4f}, {X_img_normalized.max():.4f}]")
+                
+                # 顯示標準化後的影像切片
+                if st.checkbox(f"顯示標準化後的影像 {idx+1} 切片"):
+                    z_middle = X_img_normalized.shape[2] // 2
+                    normalized_slice = (X_img_normalized[:, :, z_middle] * 255).astype(np.uint8)
+                    st.image(normalized_slice, caption=f"標準化後的軸狀面切片 {file_id}")
+    
+        # 繼續原有的預測流程
+        results = []
         if isinstance(st.session_state.image_data, list):
             # 多筆資料處理
             for img_data, (_, questionnaire_data), filename in zip(
@@ -489,10 +512,6 @@ class PredictionApp:
                 X_img_normalized, X_table_normalized, file_id = self.preprocess_data(
                     img_data, questionnaire_data, filename
                 )
-                
-                # 在預測前顯示當前要預測的影像
-                st.subheader(f"即將進行預測的影像確認: {filename}")
-                self.display_brain_slice(X_img_normalized, filename ,normalize=False, show_checkbox=False)
                 
                 # 擴展維度
                 X_img_new = np.expand_dims(X_img_normalized, axis=0)
@@ -525,12 +544,6 @@ class PredictionApp:
                 st.session_state.image_data, 
                 questionnaire_data
             )
-            
-            # 在預測前顯示要進行預測的影像
-            st.subheader("即將進行預測的影像確認")
-            filename = st.session_state.image_filenames[0] if st.session_state.image_filenames else "未命名影像"
-            self.display_brain_slice(X_img_normalized, filename ,normalize=False, show_checkbox=False)
-            
             X_img_new = np.expand_dims(X_img_normalized, axis=0)
             X_table_new = np.array(X_table_normalized)
             
