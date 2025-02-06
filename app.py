@@ -59,7 +59,7 @@ class PredictionApp:
         return (normalized * 255).astype(np.uint8)
     
     def display_brain_slice(self, img_data, filename):
-        """顯示腦部切片的增強版本"""
+        """顯示腦部切片的簡化版本"""
         # 獲取三個方向的中間切片
         x_middle = img_data.shape[0] // 2
         y_middle = img_data.shape[1] // 2
@@ -70,30 +70,16 @@ class PredictionApp:
             
             with col1:
                 sagittal = self.normalize_for_display(img_data[x_middle, :, :])
-                st.image(sagittal, caption="矢狀面 (Sagittal)", clamp=True)
+                st.image(sagittal, caption="矢狀面 (Sagittal)")
                 
             with col2:
                 coronal = self.normalize_for_display(img_data[:, y_middle, :])
-                st.image(coronal, caption="冠狀面 (Coronal)", clamp=True)
+                st.image(coronal, caption="冠狀面 (Coronal)")
                 
             with col3:
                 axial = self.normalize_for_display(img_data[:, :, z_middle])
-                st.image(axial, caption="軸狀面 (Axial)", clamp=True)
-    
-            # 添加對比度調整滑桿（可選）
-            contrast = st.slider(
-                "調整對比度",
-                min_value=0.1,
-                max_value=3.0,
-                value=1.0,
-                step=0.1,
-                key=f"contrast_{filename}"
-            )
-            
-            if contrast != 1.0:
-                # 使用新的對比度顯示影像
-                adjusted_slice = np.power(axial/255.0, contrast) * 255
-                st.image(adjusted_slice.astype(np.uint8), caption="調整後的軸狀面", clamp=True)
+                st.image(axial, caption="軸狀面 (Axial)")
+        
                 
     def extract_number(self, x):
         """從字串結尾提取數字"""
