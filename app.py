@@ -441,16 +441,8 @@ class PredictionApp:
                         0.95952768, 0.70608356, 0.77328843, 0.48061809, 7.44441905, 1.3820275])
 
         X_table = (X_table - mean) / std
-
-        # 載入標準化參數
-        x_img_max_path = os.path.join('X_img_max.npy')
-        x_img_min_path = os.path.join('X_img_min.npy')
-
-        X_img_max = np.load(x_img_max_path)
-        X_img_min = np.load(x_img_min_path)
-
-        # 對新的資料進行標準化
-        X_img_normalized = (img_data - X_img_min) / (X_img_max - X_img_min)
+        
+        X_img_normalized = (img_data - img_data.min()) / (img_data.max() - img_data.min())
         
         return X_img_normalized, X_table, filename
     
